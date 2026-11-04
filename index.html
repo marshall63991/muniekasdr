@@ -296,6 +296,11 @@ td.num { text-align: right; width: 2.5em; }
     const th0 = document.createElement("th");
     th0.textContent = "Jugador";
     hr.appendChild(th0);
+    ["Total", "Media"].forEach((t) => {
+      const th = document.createElement("th");
+      th.textContent = t;
+      hr.appendChild(th);
+    });
     jornadasList.forEach((j) => {
       const th = document.createElement("th");
       th.textContent = "J" + j;
@@ -307,8 +312,16 @@ td.num { text-align: right; width: 2.5em; }
     PLAYERS.forEach((p) => {
       const tr = document.createElement("tr");
       const td0 = document.createElement("td");
-      td0.textContent = p;
+      td0.appendChild(avatar(p));
+      td0.appendChild(document.createTextNode(p));
       tr.appendChild(td0);
+      const mp = medias[p] || {};
+      [mp.total, mp.media].forEach((v) => {
+        const td = document.createElement("td");
+        td.className = "num";
+        td.textContent = v === undefined ? "" : v;
+        tr.appendChild(td);
+      });
       jornadasList.forEach((j) => {
         const td = document.createElement("td");
         const m = medias[p];
