@@ -71,6 +71,10 @@ td.num { text-align: right; width: 2.5em; }
 .tabs { display: flex; gap: 8px; }
 .tab { width: auto; flex: 1; margin-top: 0; background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--fg); border: 1px solid var(--line); }
 .tab.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.avatar.big { width: 72px; height: 72px; margin-right: 0; }
+.mvp-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mvp-main audio { flex: 1; min-width: 0; width: 100%; }
+#mvp-nombre { font-size: 18px; color: var(--fg); }
 .total { font-size: 13px; color: var(--muted); }
 </style>
 </head>
@@ -80,6 +84,14 @@ td.num { text-align: right; width: 2.5em; }
     <h1>Votación de posiciones</h1>
     <p id="round">Cargando jornada…</p>
   </header>
+
+  <section class="card" id="mvp" hidden>
+    <p class="msg">La MVP (Muñeka Vien Putona) es… <strong id="mvp-nombre"></strong></p>
+    <div class="mvp-main">
+      <img id="mvp-foto" class="avatar big" alt="">
+      <audio id="mvp-audio" controls></audio>
+    </div>
+  </section>
 
   <nav class="tabs">
     <button type="button" class="tab active" data-tab="votar">Votaciones</button>
@@ -369,6 +381,42 @@ td.num { text-align: right; width: 2.5em; }
     box.appendChild(leyenda);
   }
 
+  // Pista de cada jugador, en el mismo directorio que index.html
+  const PISTAS = {
+    "Xavi": "xavi%20oliviaDean.mp3",
+    "Luis": "luis%20sabrina.mp3",
+    "Jesús": "jesus%20gyal.mp3",
+    "Marcial": "marci%20slayyter.mp3",
+    "Juli": "juli%20emilia.mp3",
+  };
+  let mvpActual = null;
+
+  // MVP: el jugador con más puntos en la jornada actual (los que estuvieron OUT no cuentan)
+  function renderMvp() {
+    const j = String(jornada);
+    let mejor = null, mejorPts = 0;
+    PLAYERS.forEach((p) => {
+      const m = medias[p];
+      if (!m || (m.categorias && m.categorias[j] === "OUT")) return;
+      const pts = (m.porJornada && m.porJornada[j]) || 0;
+      if (pts > mejorPts) { mejor = p; mejorPts = pts; }
+    });
+    const sec = $("mvp");
+    if (!mejor) { sec.hidden = true; return; }
+    sec.hidden = false;
+    $("mvp-nombre").textContent = mejor;
+    const foto = $("mvp-foto");
+    foto.alt = mejor;
+    foto.src = FOTOS[mejor] || "";
+    if (mejor !== mvpActual) {
+      mvpActual = mejor;
+      const audio = $("mvp-audio");
+      audio.src = PISTAS[mejor] || "";
+      // Los navegadores pueden bloquear la reproducción automática; el control queda disponible
+      audio.play().catch(() => {});
+    }
+  }
+
   async function refresh() {
     try {
       const data = await get();
@@ -383,6 +431,7 @@ td.num { text-align: right; width: 2.5em; }
       $("advance-btn").textContent = "Pasar a la jornada " + (jornada + 1);
       render();
       renderTabla();
+      renderMvp();
     } catch (e) {
       $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
     }
