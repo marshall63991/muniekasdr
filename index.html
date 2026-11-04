@@ -63,7 +63,7 @@ td.num { text-align: right; width: 2.5em; }
     <h1>Votación de posiciones</h1>
     <p id="round">Cargando jornada…</p>
   </header>
- 
+
   <section class="card">
     <label for="name">¿Quién eres?</label>
     <select id="name">
@@ -76,7 +76,7 @@ td.num { text-align: right; width: 2.5em; }
       <option value="Alex">Alex</option>
     </select>
   </section>
- 
+
   <section class="card hidden-block" id="vote-block" hidden>
     <h2>Votación de la jornada <span id="round-vote"></span></h2>
     <p class="msg">Votación anónima. No puedes votarte a ti mismo. Cada opción solo se puede usar una vez.</p>
@@ -86,7 +86,7 @@ td.num { text-align: right; width: 2.5em; }
       <p class="msg" id="vote-msg"></p>
     </form>
   </section>
- 
+
   <section class="card hidden-block" id="advance-block" hidden>
     <h2>Control de jornada</h2>
     <p class="msg">Solo Marcial puede pasar a la siguiente jornada.</p>
@@ -95,34 +95,39 @@ td.num { text-align: right; width: 2.5em; }
     <button type="button" id="advance-btn">Pasar a la siguiente jornada</button>
     <p class="msg" id="advance-msg"></p>
   </section>
- 
+
   <section class="card">
     <h2>Resultados <span id="round-results"></span></h2>
     <p class="total" id="total">Cargando…</p>
     <div class="results" id="results"></div>
   </section>
+  <section class="card">
+    <h2>Clasificación global</h2>
+    <p class="msg">Ordenada por media por jornada. Debajo, los puntos de cada jornada.</p>
+    <div id="ranking"></div>
+  </section>
 </main>
- 
+
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyMmmui77JyOwCs53uOFBnbrlnMP5i0gBFBoccBaMLvBosGh0or_bV47L6BxzQGjIO2/exec";
- 
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxy0UcS26JP24jeZgEy8EngqB53qlYDaOr7k-_a_cJq53zL1G-rkXLWMaKqI6X4doNL/exec";
+
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
   const CONTROLLER = "Marcial";
- 
+
   const $ = (id) => document.getElementById(id);
   function idFor(p) {
     return "pos-" + p.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   }
- 
+
   let jornada = null;
   let rows = [];
   let medias = {};
- 
+
   function votedKey() { return "votacion-posiciones-voted-j" + jornada; }
- 
+
   async function get() {
     const r = await fetch(SCRIPT_URL);
     return r.json();
@@ -132,7 +137,7 @@ td.num { text-align: right; width: 2.5em; }
     const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
     return r.json();
   }
- 
+
   function buildPickers(voter) {
     const pickers = $("pickers");
     pickers.textContent = "";
@@ -158,7 +163,7 @@ td.num { text-align: right; width: 2.5em; }
       pickers.appendChild(wrap);
     });
   }
- 
+
   function refreshTaken() {
     const voter = $("name").value;
     const targets = PLAYERS.filter((p) => p !== voter);
@@ -171,7 +176,7 @@ td.num { text-align: right; width: 2.5em; }
       });
     });
   }
- 
+
   $("name").addEventListener("change", () => {
     const voter = $("name").value;
     $("vote-block").hidden = !voter;
@@ -180,7 +185,7 @@ td.num { text-align: right; width: 2.5em; }
     if (voter) { buildPickers(voter); refreshTaken(); }
   });
   $("pickers").addEventListener("change", refreshTaken);
- 
+
   function render() {
     const counts = {};
     PLAYERS.forEach((p) => { counts[p] = {}; OPTIONS.forEach((o) => (counts[p][o] = 0)); });
@@ -192,7 +197,7 @@ td.num { text-align: right; width: 2.5em; }
     });
     const votes = Math.round(n / (PLAYERS.length - 1));
     $("total").textContent = votes === 1 ? "1 voto" : votes + " votos";
- 
+
     const box = $("results");
     box.textContent = "";
     PLAYERS.forEach((p) => {
@@ -228,7 +233,36 @@ td.num { text-align: right; width: 2.5em; }
       }
     });
   }
- 
+
+  function renderRanking() {
+    const box = $("ranking");
+    box.textContent = "";
+    const orden = PLAYERS.filter((p) => medias[p]).sort((a, b) =>
+      medias[b].media - medias[a].media || medias[b].total - medias[a].total);
+    if (!orden.length) { box.textContent = "Sin datos todavía."; return; }
+    const max = Math.max(1, ...orden.map((p) => medias[p].media));
+    orden.forEach((p, i) => {
+      const m = medias[p];
+      const row = document.createElement("div");
+      row.className = "row";
+      const head = document.createElement("p");
+      head.style.color = "var(--fg)";
+      head.textContent = (i + 1) + ". " + p + " · media " + m.media + " · total " + m.total;
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      bar.style.height = "10px";
+      bar.style.width = Math.round((m.media / max) * 100) + "%";
+      const chips = document.createElement("p");
+      chips.className = "msg";
+      const entradas = Object.keys(m.porJornada || {}).sort((a, b) => Number(a) - Number(b));
+      chips.textContent = entradas.length
+        ? entradas.map((j) => "J" + j + ": " + m.porJornada[j]).join(" · ")
+        : "Sin partidos puntuados";
+      row.append(head, bar, chips);
+      box.appendChild(row);
+    });
+  }
+
   async function refresh() {
     try {
       const data = await get();
@@ -241,11 +275,12 @@ td.num { text-align: right; width: 2.5em; }
       $("round-results").textContent = "· jornada " + jornada;
       $("advance-btn").textContent = "Pasar a la jornada " + (jornada + 1);
       render();
+      renderRanking();
     } catch (e) {
       $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
     }
   }
- 
+
   $("advance-btn").addEventListener("click", async () => {
     const msg = $("advance-msg");
     msg.textContent = "";
@@ -262,7 +297,7 @@ td.num { text-align: right; width: 2.5em; }
       $("advance-btn").disabled = false;
     }
   });
- 
+
   $("vote-form").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const msg = $("vote-msg");
@@ -286,7 +321,7 @@ td.num { text-align: right; width: 2.5em; }
         return;
       }
     } catch (e) { /* storage no disponible */ }
- 
+
     $("submit-btn").disabled = true;
     try {
       const data = await post({ action: "vote", jornada: jornada, voter: voter, picks: picks });
@@ -304,7 +339,7 @@ td.num { text-align: right; width: 2.5em; }
       $("submit-btn").disabled = false;
     }
   });
- 
+
   refresh();
   setInterval(refresh, 30000);
 })();
