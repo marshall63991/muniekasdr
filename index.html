@@ -65,6 +65,7 @@ td.num { text-align: right; width: 2.5em; }
 .cat-SAFE { background: #eef3fb; color: #1d1f1c; }
 .cat-LOW { background: #f5b8c8; color: #1d1f1c; }
 .cat-BOTTOM { background: #e8604c; color: #ffffff; }
+.cat-OUT { background: #800080; color: #ffffff; }
 .panel { display: flex; flex-direction: column; gap: 16px; }
 .panel[hidden] { display: none !important; }
 .tabs { display: flex; gap: 8px; }
@@ -137,7 +138,7 @@ td.num { text-align: right; width: 2.5em; }
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMffdcKDHulkN1mXX6TTku1f-EQ0paqd_xY_tJwQ24Y7E9S0kS9HNlczzBX_yt5Dxl/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbdi42g8HQVgvZStTTYCz7G7goFy8_fJAZOg_v_iomJnLcC_BnYsRcGXgQitrAu8Y/exec";
 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
@@ -191,7 +192,7 @@ td.num { text-align: right; width: 2.5em; }
       empty.value = "";
       empty.textContent = "Elige una opción";
       sel.appendChild(empty);
-      OPTIONS.forEach((o) => {
+      OPTIONS.concat(["OUT"]).forEach((o) => {
         const opt = document.createElement("option");
         opt.value = o;
         opt.textContent = o;
@@ -205,7 +206,7 @@ td.num { text-align: right; width: 2.5em; }
   function refreshTaken() {
     const voter = $("name").value;
     const targets = PLAYERS.filter((p) => p !== voter);
-    const taken = targets.map((p) => $(idFor(p)).value).filter(Boolean);
+    const taken = targets.map((p) => $(idFor(p)).value).filter((v) => v && v !== "OUT");
     targets.forEach((p) => {
       const sel = $(idFor(p));
       Array.from(sel.options).forEach((o) => {
@@ -345,7 +346,7 @@ td.num { text-align: right; width: 2.5em; }
         const cat = (m && m.categorias && m.categorias[j]) || "";
         td.className = "cat" + (cat ? " cat-" + cat : "");
         const pts = (m && m.porJornada && m.porJornada[j]) || 0;
-        td.textContent = cat ? cat + " (" + pts + ")" : "";
+        td.textContent = cat === "OUT" ? "OUT" : (cat ? cat + " (" + pts + ")" : "");
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -355,7 +356,7 @@ td.num { text-align: right; width: 2.5em; }
     const leyenda = document.createElement("div");
     leyenda.className = "msg";
     [["WIN", "100 % de votos en WIN"], ["HIGH", "desde el 60 %"], ["SAFE", "desde el 40 %"],
-     ["LOW", "desde el 20 %"], ["BOTTOM", "menos del 20 %"]].forEach(([cat, txt]) => {
+     ["LOW", "desde el 20 %"], ["BOTTOM", "menos del 20 %"], ["OUT", "no vino: no puntúa"]].forEach(([cat, txt]) => {
       const chip = document.createElement("span");
       chip.className = "cat cat-" + cat;
       chip.style.display = "inline-block";
@@ -417,8 +418,13 @@ td.num { text-align: right; width: 2.5em; }
       if (!v) { msg.textContent = "Elige una opción para cada jugador."; return; }
       picks[p] = v;
     }
-    if (new Set(Object.values(picks)).size !== targets.length) {
+    const unicas = Object.values(picks).filter((o) => o !== "OUT");
+    if (new Set(unicas).size !== unicas.length) {
       msg.textContent = "Cada opción solo puede usarse una vez.";
+      return;
+    }
+    const outs = targets.filter((p) => picks[p] === "OUT");
+    if (outs.length && !confirm("Has marcado OUT para " + outs.join(", ") + ". Sus votos de esta jornada no contarán para puntos ni medias. ¿Continuar?")) {
       return;
     }
     try {
