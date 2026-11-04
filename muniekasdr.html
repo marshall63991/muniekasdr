@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Votación de posiciones</title>
+<style>
+:root {
+  --bg: #f6f5f1; --surface: #ffffff; --fg: #1d1f1c; --muted: #6b6f68;
+  --line: #dcdcd4; --accent: #1f6f4a; --accent-fg: #ffffff; --bar: #9fc7b2;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161815; --surface: #1f221e; --fg: #ecefe9; --muted: #9aa096;
+    --line: #353a33; --accent: #6fbf93; --accent-fg: #0f1410; --bar: #2f5a44;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161815; --surface: #1f221e; --fg: #ecefe9; --muted: #9aa096;
+  --line: #353a33; --accent: #6fbf93; --accent-fg: #0f1410; --bar: #2f5a44;
+  color-scheme: dark;
+}
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 32px;
+}
+main { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 22px; margin: 0; text-wrap: balance; }
+h2 { font-size: 16px; margin: 0 0 8px; }
+p { margin: 0; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+input, select, button {
+  font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  width: 100%; box-sizing: border-box;
+}
+button { background: var(--accent); color: var(--accent-fg); border: none; font-weight: 600; cursor: pointer; margin-top: 8px; }
+button:disabled { opacity: 0.5; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; min-width: 0; }
+.msg { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 1em; }
+.hidden-block[hidden] { display: none !important; }
+.results { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+td.num { text-align: right; width: 2.5em; }
+.bar { height: 6px; background: var(--bar); border-radius: 3px; margin-top: 4px; }
+.total { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Votación de posiciones</h1>
+    <p id="round">Cargando jornada…</p>
+  </header>
+ 
+  <section class="card">
+    <label for="name">¿Quién eres?</label>
+    <select id="name">
+      <option value="">Elige tu nombre</option>
+      <option value="Marcial">Marcial</option>
+      <option value="Luis">Luis</option>
+      <option value="Xavi">Xavi</option>
+      <option value="Juli">Juli</option>
+      <option value="Jesús">Jesús</option>
+    </select>
+  </section>
+ 
+  <section class="card hidden-block" id="vote-block" hidden>
+    <h2>Votación de la jornada <span id="round-vote"></span></h2>
+    <p class="msg">Votación anónima. No puedes votarte a ti mismo. Cada opción solo se puede usar una vez.</p>
+    <form id="vote-form" novalidate>
+      <div id="pickers"></div>
+      <button type="submit" id="submit-btn">Enviar voto</button>
+      <p class="msg" id="vote-msg"></p>
+    </form>
+  </section>
+ 
+  <section class="card hidden-block" id="advance-block" hidden>
+    <h2>Control de jornada</h2>
+    <p class="msg">Solo Marcial puede pasar a la siguiente jornada.</p>
+    <label for="clave">Clave</label>
+    <input id="clave" type="password" autocomplete="off">
+    <button type="button" id="advance-btn">Pasar a la siguiente jornada</button>
+    <p class="msg" id="advance-msg"></p>
+  </section>
+ 
+  <section class="card">
+    <h2>Resultados <span id="round-results"></span></h2>
+    <p class="total" id="total">Cargando…</p>
+    <div class="results" id="results"></div>
+  </section>
+</main>
+ 
+<script>
+(function () {
+  // Pega aquí la URL de la aplicación web de Google Apps Script
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxxaJsVnb2RQsZ84gSMVTRuMS7m4TkWNTD_F-mBK4pENtAg6VpAIaOH-1dKh7MzWMnn/exec";
+ 
+  const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
+  const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
+  const CONTROLLER = "Marcial";
+ 
+  const $ = (id) => document.getElementById(id);
+  function idFor(p) {
+    return "pos-" + p.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  }
+ 
+  let jornada = null;
+  let rows = [];
+  let medias = {};
+ 
+  function votedKey() { return "votacion-posiciones-voted-j" + jornada; }
+ 
+  async function get() {
+    const r = await fetch(SCRIPT_URL);
+    return r.json();
+  }
+  async function post(data) {
+    // text/plain evita el preflight CORS de Apps Script
+    const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
+    return r.json();
+  }
+ 
+  function buildPickers(voter) {
+    const pickers = $("pickers");
+    pickers.textContent = "";
+    PLAYERS.filter((p) => p !== voter).forEach((p) => {
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+      const lab = document.createElement("label");
+      lab.htmlFor = idFor(p);
+      lab.textContent = p;
+      const sel = document.createElement("select");
+      sel.id = idFor(p);
+      const empty = document.createElement("option");
+      empty.value = "";
+      empty.textContent = "Elige una opción";
+      sel.appendChild(empty);
+      OPTIONS.forEach((o) => {
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.textContent = o;
+        sel.appendChild(opt);
+      });
+      wrap.append(lab, sel);
+      pickers.appendChild(wrap);
+    });
+  }
+ 
+  function refreshTaken() {
+    const voter = $("name").value;
+    const targets = PLAYERS.filter((p) => p !== voter);
+    const taken = targets.map((p) => $(idFor(p)).value).filter(Boolean);
+    targets.forEach((p) => {
+      const sel = $(idFor(p));
+      Array.from(sel.options).forEach((o) => {
+        if (!o.value) return;
+        o.disabled = taken.includes(o.value) && sel.value !== o.value;
+      });
+    });
+  }
+ 
+  $("name").addEventListener("change", () => {
+    const voter = $("name").value;
+    $("vote-block").hidden = !voter;
+    $("advance-block").hidden = voter !== CONTROLLER;
+    $("vote-msg").textContent = "";
+    if (voter) { buildPickers(voter); refreshTaken(); }
+  });
+  $("pickers").addEventListener("change", refreshTaken);
+ 
+  function render() {
+    const counts = {};
+    PLAYERS.forEach((p) => { counts[p] = {}; OPTIONS.forEach((o) => (counts[p][o] = 0)); });
+    let n = 0;
+    rows.forEach((r) => {
+      if (String(r[0]) !== String(jornada)) return;
+      n++;
+      if (counts[r[1]] && r[2] in counts[r[1]]) counts[r[1]][r[2]]++;
+    });
+    const votes = Math.round(n / (PLAYERS.length - 1));
+    $("total").textContent = votes === 1 ? "1 voto" : votes + " votos";
+ 
+    const box = $("results");
+    box.textContent = "";
+    PLAYERS.forEach((p) => {
+      const h = document.createElement("h2");
+      h.textContent = p;
+      h.style.marginTop = "12px";
+      const table = document.createElement("table");
+      const tbody = document.createElement("tbody");
+      OPTIONS.forEach((o) => {
+        const c = counts[p][o];
+        const tr = document.createElement("tr");
+        const td1 = document.createElement("td");
+        td1.textContent = o;
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.width = votes ? Math.min(100, Math.round((c / votes) * 100)) + "%" : "0%";
+        td1.appendChild(bar);
+        const td2 = document.createElement("td");
+        td2.className = "num";
+        td2.textContent = c;
+        tr.append(td1, td2);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      const m = medias[p];
+      if (m) {
+        const sub = document.createElement("p");
+        sub.className = "msg";
+        sub.textContent = "Media: " + m.media + " por jornada (" + m.total + " puntos en " + m.jornadas + " jornadas)";
+        box.append(h, sub, table);
+      } else {
+        box.append(h, table);
+      }
+    });
+  }
+ 
+  async function refresh() {
+    try {
+      const data = await get();
+      if (!data.ok) throw new Error(data.error);
+      jornada = data.jornada;
+      rows = data.rows;
+      medias = data.medias || {};
+      $("round").textContent = "Jornada " + jornada;
+      $("round-vote").textContent = jornada;
+      $("round-results").textContent = "· jornada " + jornada;
+      $("advance-btn").textContent = "Pasar a la jornada " + (jornada + 1);
+      render();
+    } catch (e) {
+      $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
+    }
+  }
+ 
+  $("advance-btn").addEventListener("click", async () => {
+    const msg = $("advance-msg");
+    msg.textContent = "";
+    if ($("name").value !== CONTROLLER) { msg.textContent = "Solo Marcial puede avanzar la jornada."; return; }
+    $("advance-btn").disabled = true;
+    try {
+      const data = await post({ action: "advance", clave: $("clave").value });
+      msg.textContent = data.ok ? "Jornada " + data.jornada + " abierta para votar." : data.error;
+      if (data.ok) $("clave").value = "";
+      await refresh();
+    } catch (e) {
+      msg.textContent = "No se pudo cambiar la jornada. Inténtalo de nuevo.";
+    } finally {
+      $("advance-btn").disabled = false;
+    }
+  });
+ 
+  $("vote-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const msg = $("vote-msg");
+    msg.textContent = "";
+    const voter = $("name").value;
+    if (!voter) { msg.textContent = "Elige tu nombre primero."; return; }
+    const targets = PLAYERS.filter((p) => p !== voter);
+    const picks = {};
+    for (const p of targets) {
+      const v = $(idFor(p)).value;
+      if (!v) { msg.textContent = "Elige una opción para cada jugador."; return; }
+      picks[p] = v;
+    }
+    if (new Set(Object.values(picks)).size !== targets.length) {
+      msg.textContent = "Cada opción solo puede usarse una vez.";
+      return;
+    }
+    try {
+      if (localStorage.getItem(votedKey())) {
+        msg.textContent = "Ya has votado esta jornada desde este dispositivo.";
+        return;
+      }
+    } catch (e) { /* storage no disponible */ }
+ 
+    $("submit-btn").disabled = true;
+    try {
+      const data = await post({ action: "vote", jornada: jornada, voter: voter, picks: picks });
+      if (!data.ok) { msg.textContent = data.error; return; }
+      try { localStorage.setItem(votedKey(), "1"); } catch (e) { /* ignore */ }
+      msg.textContent = "Voto enviado. Gracias.";
+      $("name").value = "";
+      $("vote-block").hidden = true;
+      $("advance-block").hidden = true;
+      $("pickers").textContent = "";
+      await refresh();
+    } catch (e) {
+      msg.textContent = "No se pudo guardar el voto. Inténtalo de nuevo.";
+    } finally {
+      $("submit-btn").disabled = false;
+    }
+  });
+ 
+  refresh();
+  setInterval(refresh, 30000);
+})();
+</script>
+</body>
+</html>
