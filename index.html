@@ -24,7 +24,7 @@
 }
 body {
   margin: 0;
-  background: linear-gradient(color-mix(in srgb, var(--bg) 72%, transparent), color-mix(in srgb, var(--bg) 72%, transparent)), url("fondo.jpg") center / cover fixed no-repeat var(--bg);
+  background: linear-gradient(color-mix(in srgb, var(--bg) 72%, transparent), color-mix(in srgb, var(--bg) 72%, transparent)), url("fondo.png") center / cover fixed no-repeat var(--bg);
   color: var(--fg);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px; line-height: 1.5;
@@ -63,7 +63,7 @@ td.num { text-align: right; width: 2.5em; }
     <h1>Votación de posiciones</h1>
     <p id="round">Cargando jornada…</p>
   </header>
-
+ 
   <section class="card">
     <label for="name">¿Quién eres?</label>
     <select id="name">
@@ -73,9 +73,10 @@ td.num { text-align: right; width: 2.5em; }
       <option value="Xavi">Xavi</option>
       <option value="Juli">Juli</option>
       <option value="Jesús">Jesús</option>
+      <option value="Alex">Alex</option>
     </select>
   </section>
-
+ 
   <section class="card hidden-block" id="vote-block" hidden>
     <h2>Votación de la jornada <span id="round-vote"></span></h2>
     <p class="msg">Votación anónima. No puedes votarte a ti mismo. Cada opción solo se puede usar una vez.</p>
@@ -85,7 +86,7 @@ td.num { text-align: right; width: 2.5em; }
       <p class="msg" id="vote-msg"></p>
     </form>
   </section>
-
+ 
   <section class="card hidden-block" id="advance-block" hidden>
     <h2>Control de jornada</h2>
     <p class="msg">Solo Marcial puede pasar a la siguiente jornada.</p>
@@ -94,34 +95,34 @@ td.num { text-align: right; width: 2.5em; }
     <button type="button" id="advance-btn">Pasar a la siguiente jornada</button>
     <p class="msg" id="advance-msg"></p>
   </section>
-
+ 
   <section class="card">
     <h2>Resultados <span id="round-results"></span></h2>
     <p class="total" id="total">Cargando…</p>
     <div class="results" id="results"></div>
   </section>
 </main>
-
+ 
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259wd8bnTJvXdhwRRp5mWR46_a2X0kiSLyadY5CiH04ek340qA/exec";
-
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyMmmui77JyOwCs53uOFBnbrlnMP5i0gBFBoccBaMLvBosGh0or_bV47L6BxzQGjIO2/exec";
+ 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
   const CONTROLLER = "Marcial";
-
+ 
   const $ = (id) => document.getElementById(id);
   function idFor(p) {
     return "pos-" + p.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   }
-
+ 
   let jornada = null;
   let rows = [];
   let medias = {};
-
+ 
   function votedKey() { return "votacion-posiciones-voted-j" + jornada; }
-
+ 
   async function get() {
     const r = await fetch(SCRIPT_URL);
     return r.json();
@@ -131,7 +132,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
     const r = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
     return r.json();
   }
-
+ 
   function buildPickers(voter) {
     const pickers = $("pickers");
     pickers.textContent = "";
@@ -157,7 +158,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
       pickers.appendChild(wrap);
     });
   }
-
+ 
   function refreshTaken() {
     const voter = $("name").value;
     const targets = PLAYERS.filter((p) => p !== voter);
@@ -170,7 +171,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
       });
     });
   }
-
+ 
   $("name").addEventListener("change", () => {
     const voter = $("name").value;
     $("vote-block").hidden = !voter;
@@ -179,7 +180,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
     if (voter) { buildPickers(voter); refreshTaken(); }
   });
   $("pickers").addEventListener("change", refreshTaken);
-
+ 
   function render() {
     const counts = {};
     PLAYERS.forEach((p) => { counts[p] = {}; OPTIONS.forEach((o) => (counts[p][o] = 0)); });
@@ -191,7 +192,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
     });
     const votes = Math.round(n / (PLAYERS.length - 1));
     $("total").textContent = votes === 1 ? "1 voto" : votes + " votos";
-
+ 
     const box = $("results");
     box.textContent = "";
     PLAYERS.forEach((p) => {
@@ -227,7 +228,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
       }
     });
   }
-
+ 
   async function refresh() {
     try {
       const data = await get();
@@ -244,7 +245,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
       $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
     }
   }
-
+ 
   $("advance-btn").addEventListener("click", async () => {
     const msg = $("advance-msg");
     msg.textContent = "";
@@ -261,7 +262,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
       $("advance-btn").disabled = false;
     }
   });
-
+ 
   $("vote-form").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const msg = $("vote-msg");
@@ -285,7 +286,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
         return;
       }
     } catch (e) { /* storage no disponible */ }
-
+ 
     $("submit-btn").disabled = true;
     try {
       const data = await post({ action: "vote", jornada: jornada, voter: voter, picks: picks });
@@ -303,11 +304,10 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkCVIP5xKBLl0kPc259
       $("submit-btn").disabled = false;
     }
   });
-
+ 
   refresh();
   setInterval(refresh, 30000);
 })();
 </script>
 </body>
-</html>
 </html>
