@@ -46,6 +46,11 @@ input, select, button {
 button { background: var(--accent); color: var(--accent-fg); border: none; font-weight: 600; cursor: pointer; margin-top: 8px; }
 button:disabled { opacity: 0.5; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+  border: 1px solid var(--line); vertical-align: middle;
+  margin-right: 8px; flex-shrink: 0;
+}
 .row { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; min-width: 0; }
 .msg { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 1em; }
 .hidden-block[hidden] { display: none !important; }
@@ -116,8 +121,18 @@ td.num { text-align: right; width: 2.5em; }
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
   const CONTROLLER = "Marcial";
+  // Retratos en el mismo directorio que index.html. Alex no tiene foto: se oculta el hueco.
+  const FOTOS = { "Marcial": "marci.jpeg", "Luis": "luis.jpeg", "Xavi": "xavi.jpeg", "Juli": "juli.jpeg", "Jesús": "jesus.jpeg" };
 
   const $ = (id) => document.getElementById(id);
+  function avatar(p) {
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.alt = p;
+    img.src = FOTOS[p] || "";
+    img.onerror = () => img.remove();
+    return img;
+  }
   function idFor(p) {
     return "pos-" + p.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   }
@@ -146,7 +161,8 @@ td.num { text-align: right; width: 2.5em; }
       wrap.className = "row";
       const lab = document.createElement("label");
       lab.htmlFor = idFor(p);
-      lab.textContent = p;
+      lab.appendChild(avatar(p));
+      lab.appendChild(document.createTextNode(p));
       const sel = document.createElement("select");
       sel.id = idFor(p);
       const empty = document.createElement("option");
@@ -247,7 +263,8 @@ td.num { text-align: right; width: 2.5em; }
       row.className = "row";
       const head = document.createElement("p");
       head.style.color = "var(--fg)";
-      head.textContent = (i + 1) + ". " + p + " · media " + m.media + " · total " + m.total;
+      head.appendChild(avatar(p));
+      head.appendChild(document.createTextNode((i + 1) + ". " + p + " · media " + m.media + " · total " + m.total));
       const bar = document.createElement("div");
       bar.className = "bar";
       bar.style.height = "10px";
