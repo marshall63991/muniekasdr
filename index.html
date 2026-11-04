@@ -113,11 +113,6 @@ td.num { text-align: right; width: 2.5em; }
     <div class="results" id="results"></div>
   </section>
   <section class="card">
-    <h2>Clasificación global</h2>
-    <p class="msg">Ordenada por media por jornada. Debajo, los puntos de cada jornada.</p>
-    <div id="ranking"></div>
-  </section>
-  <section class="card">
     <h2>Tabla por jornada</h2>
     <p class="msg">Categoría de cada jugador en cada jornada, según los puntos que recibe.</p>
     <div class="results" id="tabla"></div>
@@ -127,7 +122,7 @@ td.num { text-align: right; width: 2.5em; }
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwi-JZlm72xKwAkeB9D4J-FZiH7V5-4QP468iEatgCNkUrWt-c6S5QyIvlG5XpXOPYu/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZlpjvIIeE1Fab0_dSrm8YMn4ijRJTD6T33dr-J0xoXTz5hqI69I5BGKQ4rH6Ky3r9/exec";
 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
@@ -334,13 +329,28 @@ td.num { text-align: right; width: 2.5em; }
         const m = medias[p];
         const cat = (m && m.categorias && m.categorias[j]) || "";
         td.className = "cat" + (cat ? " cat-" + cat : "");
-        td.textContent = cat;
+        const pts = (m && m.porJornada && m.porJornada[j]) || 0;
+        td.textContent = cat ? cat + " (" + pts + ")" : "";
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
     box.appendChild(table);
+    const leyenda = document.createElement("div");
+    leyenda.className = "msg";
+    [["WIN", "100 % de votos en WIN"], ["HIGH", "desde el 60 %"], ["SAFE", "desde el 40 %"],
+     ["LOW", "desde el 20 %"], ["BOTTOM", "menos del 20 %"]].forEach(([cat, txt]) => {
+      const chip = document.createElement("span");
+      chip.className = "cat cat-" + cat;
+      chip.style.display = "inline-block";
+      chip.style.margin = "4px 6px 0 0";
+      chip.style.padding = "2px 8px";
+      chip.style.borderRadius = "6px";
+      chip.textContent = cat + ": " + txt;
+      leyenda.appendChild(chip);
+    });
+    box.appendChild(leyenda);
   }
 
   async function refresh() {
@@ -356,7 +366,6 @@ td.num { text-align: right; width: 2.5em; }
       $("round-results").textContent = "· jornada " + jornada;
       $("advance-btn").textContent = "Pasar a la jornada " + (jornada + 1);
       render();
-      renderRanking();
       renderTabla();
     } catch (e) {
       $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
