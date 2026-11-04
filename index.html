@@ -391,6 +391,11 @@ td.num { text-align: right; width: 2.5em; }
   };
   let mvpActual = null;
 
+  function reproducirMvp() {
+    const audio = $("mvp-audio");
+    if (audio && audio.src) audio.play().catch(() => {});
+  }
+
   // MVP: el jugador con más puntos en la jornada actual (los que estuvieron OUT no cuentan)
   function renderMvp() {
     const j = String(jornada);
@@ -413,7 +418,11 @@ td.num { text-align: right; width: 2.5em; }
       const audio = $("mvp-audio");
       audio.src = PISTAS[mejor] || "";
       // Los navegadores pueden bloquear la reproducción automática; el control queda disponible
-      audio.play().catch(() => {});
+      audio.play().catch(() => {
+        // El navegador bloquea el sonido sin interacción: suena en cuanto el usuario toca la página
+        document.addEventListener("click", reproducirMvp, { once: true });
+        document.addEventListener("touchstart", reproducirMvp, { once: true });
+      });
     }
   }
 
