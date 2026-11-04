@@ -59,6 +59,12 @@ table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-nu
 th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
 td.num { text-align: right; width: 2.5em; }
 .bar { height: 6px; background: var(--bar); border-radius: 3px; margin-top: 4px; }
+.cat { text-align: center; font-weight: 600; min-width: 4.5em; }
+.cat-WIN { background: #3f6fd8; color: #ffffff; }
+.cat-HIGH { background: #a9d6ea; color: #1d1f1c; }
+.cat-SAFE { background: #eef3fb; color: #1d1f1c; }
+.cat-LOW { background: #f5b8c8; color: #1d1f1c; }
+.cat-BOTTOM { background: #e8604c; color: #ffffff; }
 .total { font-size: 13px; color: var(--muted); }
 </style>
 </head>
@@ -121,7 +127,7 @@ td.num { text-align: right; width: 2.5em; }
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwl0b3vJSW4Qo0t8tA2FUi0PcOgAuCWTSp7TWYi1inAmsb9q9rq3MN4k4pNuMObKxzd/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrab3z8ekeE4hSnwVzbxo5M4NY04Wyu-ygGc77gH6_eOdoEwBUFBBmg7IgQRsh9NXB/exec";
 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
@@ -217,7 +223,8 @@ td.num { text-align: right; width: 2.5em; }
       n++;
       if (counts[r[1]] && r[2] in counts[r[1]]) counts[r[1]][r[2]]++;
     });
-    const votes = Math.round(n / (PLAYERS.length - 1));
+    const votes = Math.max(0, ...PLAYERS.map((p) =>
+      rows.filter((r) => String(r[0]) === String(jornada) && r[1] === p).length));
     $("total").textContent = votes === 1 ? "1 voto" : votes + " votos";
 
     const box = $("results");
@@ -325,7 +332,9 @@ td.num { text-align: right; width: 2.5em; }
       jornadasList.forEach((j) => {
         const td = document.createElement("td");
         const m = medias[p];
-        td.textContent = (m && m.categorias && m.categorias[j]) || "";
+        const cat = (m && m.categorias && m.categorias[j]) || "";
+        td.className = "cat" + (cat ? " cat-" + cat : "");
+        td.textContent = cat;
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
