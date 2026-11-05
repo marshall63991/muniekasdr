@@ -91,7 +91,7 @@ td.num { text-align: right; width: 2.5em; }
 <body>
 <main>
   <header>
-    <h1>Zerola's Drag Race - All Muñekas - Season 27</h1>
+    <h1>Muñekas Drag Race</h1>
     <p id="round">Cargando jornada…</p>
     <span class="spinner" id="spinner" role="status" aria-label="Cargando"></span>
   </header>
@@ -112,7 +112,7 @@ td.num { text-align: right; width: 2.5em; }
 
   <div class="panel" data-panel="votar">
   <section class="card">
-    <label for="name">¿Qué muñeka eres?</label>
+    <label for="name">¿Quién eres, muñekona?</label>
     <select id="name">
       <option value="">Elige tu nombre</option>
       <option value="Marcial">Marcial</option>
@@ -126,7 +126,7 @@ td.num { text-align: right; width: 2.5em; }
 
   <section class="card hidden-block" id="vote-block" hidden>
     <h2>Votación de la jornada <span id="round-vote"></span></h2>
-    <p class="msg">Votación anónima. No puedes votarte a ti misma tía. Cada opción solo se puede usar una vez.</p>
+    <p class="msg">Votación anónima. No puedes votarte a ti misma Cada opción solo se puede usar una vez.</p>
     <form id="vote-form" novalidate>
       <div id="pickers"></div>
       <button type="submit" id="submit-btn">Enviar voto</button>
@@ -136,8 +136,8 @@ td.num { text-align: right; width: 2.5em; }
 
   <section class="card hidden-block" id="advance-block" hidden>
     <h2>Control de jornada</h2>
-    <p class="msg">Jódete que solo Marcial puede pasar a la siguiente jornada.</p>
-    <label for="clave">Contraseña</label>
+    <p class="msg">Solo Marcial puede pasar a la siguiente jornada.</p>
+    <label for="clave">Clave</label>
     <input id="clave" type="password" autocomplete="off">
     <button type="button" id="advance-btn">Pasar a la siguiente jornada</button>
     <p class="msg" id="advance-msg"></p>
@@ -166,7 +166,7 @@ td.num { text-align: right; width: 2.5em; }
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "PEGA_AQUI_LA_URL_DEL_SCRIPT";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOu_-gfCUaRAeBTr5SQd8y00aV892mVoF2r3EZxn3LaX4VibvlQ1Mj3VppKxy3tRm7/exec";
 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
