@@ -91,7 +91,7 @@ td.num { text-align: right; width: 2.5em; }
 <body>
 <main>
   <header>
-    <h1>Votación de posiciones</h1>
+    <h1>Zerola's Drag Race - All Muñekas - Season 27</h1>
     <p id="round">Cargando jornada…</p>
     <span class="spinner" id="spinner" role="status" aria-label="Cargando"></span>
   </header>
@@ -112,7 +112,7 @@ td.num { text-align: right; width: 2.5em; }
 
   <div class="panel" data-panel="votar">
   <section class="card">
-    <label for="name">¿Quién eres?</label>
+    <label for="name">¿Qué muñeka eres?</label>
     <select id="name">
       <option value="">Elige tu nombre</option>
       <option value="Marcial">Marcial</option>
@@ -126,7 +126,7 @@ td.num { text-align: right; width: 2.5em; }
 
   <section class="card hidden-block" id="vote-block" hidden>
     <h2>Votación de la jornada <span id="round-vote"></span></h2>
-    <p class="msg">Votación anónima. No puedes votarte a ti mismo. Cada opción solo se puede usar una vez.</p>
+    <p class="msg">Votación anónima. No puedes votarte a ti misma tía. Cada opción solo se puede usar una vez.</p>
     <form id="vote-form" novalidate>
       <div id="pickers"></div>
       <button type="submit" id="submit-btn">Enviar voto</button>
@@ -136,8 +136,8 @@ td.num { text-align: right; width: 2.5em; }
 
   <section class="card hidden-block" id="advance-block" hidden>
     <h2>Control de jornada</h2>
-    <p class="msg">Solo Marcial puede pasar a la siguiente jornada.</p>
-    <label for="clave">Clave</label>
+    <p class="msg">Jódete que solo Marcial puede pasar a la siguiente jornada.</p>
+    <label for="clave">Contraseña</label>
     <input id="clave" type="password" autocomplete="off">
     <button type="button" id="advance-btn">Pasar a la siguiente jornada</button>
     <p class="msg" id="advance-msg"></p>
@@ -148,7 +148,7 @@ td.num { text-align: right; width: 2.5em; }
   <div class="panel" data-panel="ppe" hidden>
   <section class="card">
     <h2>PPE (Points Per Encounter)</h2>
-    <p class="msg">Categoría de cada jugador en cada jornada, según los puntos que recibe.</p>
+    <p class="msg">Categoría de cada muñeka en cada jornada, según los puntos que recibe.</p>
     <div class="results" id="tabla"></div>
   </section>
   </div>
@@ -157,7 +157,7 @@ td.num { text-align: right; width: 2.5em; }
     <h2>Clasificación por jornada</h2>
     <label for="jornada-sel">Jornada</label>
     <select id="jornada-sel"></select>
-    <p class="msg">Los votos son anónimos: se ven las opciones que recibió cada jugador, no quién las dio.</p>
+    <p class="msg">Los votos son anónimos: se ven las opciones que recibió cada muñeka, no quién las dio.</p>
     <div class="results" id="clas-tabla"></div>
   </section>
   </div>
@@ -321,11 +321,11 @@ td.num { text-align: right; width: 2.5em; }
 
   // Pista de cada jugador, en el mismo directorio que index.html
   const PISTAS = {
-    "Xavi": "xavi%20oliviaDean.mp3",
-    "Luis": "luis%20sabrina.mp3",
-    "Jesús": "jesus%20gyal.mp3",
-    "Marcial": "marci%20slayyter.mp3",
-    "Juli": "juli%20emilia.mp3",
+    "Xavi": "oliviaDean.mp3",
+    "Luis": "sabrina.mp3",
+    "Jesús": "gyal.mp3",
+    "Marcial": "slayyter.mp3",
+    "Juli": "emilia.mp3",
   };
   let mvpActual = null;
 
