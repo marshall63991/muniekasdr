@@ -143,11 +143,6 @@ td.num { text-align: right; width: 2.5em; }
     <p class="msg" id="advance-msg"></p>
   </section>
 
-  <section class="card">
-    <h2>Resultados <span id="round-results"></span></h2>
-    <p class="total" id="total">Cargando…</p>
-    <div class="results" id="results"></div>
-  </section>
   </div>
 
   <div class="panel" data-panel="ppe" hidden>
@@ -171,7 +166,7 @@ td.num { text-align: right; width: 2.5em; }
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOu_-gfCUaRAeBTr5SQd8y00aV892mVoF2r3EZxn3LaX4VibvlQ1Mj3VppKxy3tRm7/exec";
+  const SCRIPT_URL = "PEGA_AQUI_LA_URL_DEL_SCRIPT";
 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
@@ -258,85 +253,6 @@ td.num { text-align: right; width: 2.5em; }
     if (voter) { buildPickers(voter); refreshTaken(); }
   });
   $("pickers").addEventListener("change", refreshTaken);
-
-  function render() {
-    const counts = {};
-    PLAYERS.forEach((p) => { counts[p] = {}; OPTIONS.forEach((o) => (counts[p][o] = 0)); });
-    let n = 0;
-    rows.forEach((r) => {
-      if (String(r[0]) !== String(jornada)) return;
-      n++;
-      if (counts[r[1]] && r[2] in counts[r[1]]) counts[r[1]][r[2]]++;
-    });
-    const votes = Math.max(0, ...PLAYERS.map((p) =>
-      rows.filter((r) => String(r[0]) === String(jornada) && r[1] === p).length));
-    $("total").textContent = votes === 1 ? "1 voto" : votes + " votos";
-
-    const box = $("results");
-    box.textContent = "";
-    PLAYERS.forEach((p) => {
-      const h = document.createElement("h2");
-      h.textContent = p;
-      h.style.marginTop = "12px";
-      const table = document.createElement("table");
-      const tbody = document.createElement("tbody");
-      OPTIONS.forEach((o) => {
-        const c = counts[p][o];
-        const tr = document.createElement("tr");
-        const td1 = document.createElement("td");
-        td1.textContent = o;
-        const bar = document.createElement("div");
-        bar.className = "bar";
-        bar.style.width = votes ? Math.min(100, Math.round((c / votes) * 100)) + "%" : "0%";
-        td1.appendChild(bar);
-        const td2 = document.createElement("td");
-        td2.className = "num";
-        td2.textContent = c;
-        tr.append(td1, td2);
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      const m = medias[p];
-      if (m) {
-        const sub = document.createElement("p");
-        sub.className = "msg";
-        sub.textContent = "Media: " + m.media + " por jornada (" + m.total + " puntos en " + m.jornadas + " jornadas)";
-        box.append(h, sub, table);
-      } else {
-        box.append(h, table);
-      }
-    });
-  }
-
-  function renderRanking() {
-    const box = $("ranking");
-    box.textContent = "";
-    const orden = PLAYERS.filter((p) => medias[p]).sort((a, b) =>
-      medias[b].media - medias[a].media || medias[b].total - medias[a].total);
-    if (!orden.length) { box.textContent = "Sin datos todavía."; return; }
-    const max = Math.max(1, ...orden.map((p) => medias[p].media));
-    orden.forEach((p, i) => {
-      const m = medias[p];
-      const row = document.createElement("div");
-      row.className = "row";
-      const head = document.createElement("p");
-      head.style.color = "var(--fg)";
-      head.appendChild(avatar(p));
-      head.appendChild(document.createTextNode((i + 1) + ". " + p + " · media " + m.media + " · total " + m.total));
-      const bar = document.createElement("div");
-      bar.className = "bar";
-      bar.style.height = "10px";
-      bar.style.width = Math.round((m.media / max) * 100) + "%";
-      const chips = document.createElement("p");
-      chips.className = "msg";
-      const entradas = Object.keys(m.porJornada || {}).sort((a, b) => Number(a) - Number(b));
-      chips.textContent = entradas.length
-        ? entradas.map((j) => "J" + j + ": " + m.porJornada[j]).join(" · ")
-        : "Sin partidos puntuados";
-      row.append(head, bar, chips);
-      box.appendChild(row);
-    });
-  }
 
   function renderTabla() {
     const box = $("tabla");
@@ -448,6 +364,24 @@ td.num { text-align: right; width: 2.5em; }
     }
   }
 
+  // Corona SVG para el jugador más votado de la jornada
+  function corona() {
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 16");
+    svg.setAttribute("width", "18");
+    svg.setAttribute("height", "12");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Más votado de la jornada");
+    svg.style.marginLeft = "8px";
+    svg.style.verticalAlign = "middle";
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", "M1 15 L3 3 L8 9 L12 1 L16 9 L21 3 L23 15 Z");
+    path.setAttribute("fill", "#e0a800");
+    svg.appendChild(path);
+    return svg;
+  }
+
   // Pestaña Clasificación: elige jornada y muestra, por jugador, las opciones recibidas
   function renderClasificacion() {
     const sel = $("jornada-sel");
@@ -487,11 +421,25 @@ td.num { text-align: right; width: 2.5em; }
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    PLAYERS.forEach((p) => {
+    // Orden por puntos de la jornada (más votado arriba); los OUT, al final
+    const ranking = PLAYERS.map((p, i) => {
+      const m = medias[p] || {};
+      return {
+        p: p,
+        i: i,
+        out: !!(m.categorias && m.categorias[j] === "OUT"),
+        pts: (m.porJornada && m.porJornada[j]) || 0,
+      };
+    }).sort((a, b) => (a.out - b.out) || (b.pts - a.pts) || (a.i - b.i));
+    const topPts = Math.max(0, ...ranking.filter((x) => !x.out).map((x) => x.pts));
+
+    ranking.forEach((x) => {
+      const p = x.p;
       const tr = document.createElement("tr");
       const td0 = document.createElement("td");
       td0.appendChild(avatar(p));
       td0.appendChild(document.createTextNode(p));
+      if (!x.out && x.pts > 0 && x.pts === topPts) td0.appendChild(corona());
 
       const td1 = document.createElement("td");
       const picks = votosAll
@@ -535,14 +483,12 @@ td.num { text-align: right; width: 2.5em; }
       votosAll = data.votos || [];
       $("round").textContent = "Jornada " + jornada;
       $("round-vote").textContent = jornada;
-      $("round-results").textContent = "· jornada " + jornada;
       $("advance-btn").textContent = "Pasar a la jornada " + (jornada + 1);
-      render();
       renderTabla();
       renderMvp();
       renderClasificacion();
     } catch (e) {
-      $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
+      $("round").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
     } finally {
       $("spinner").hidden = true;
     }
