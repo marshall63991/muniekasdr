@@ -97,7 +97,7 @@ td.num { text-align: right; width: 2.5em; }
   </header>
 
   <section class="card" id="mvp" hidden>
-    <p class="msg">La MVP (Muñeka Vien Putona) es… <strong id="mvp-nombre"></strong></p>
+    <p class="msg"><span id="mvp-lead"></span> <strong id="mvp-nombre"></strong></p>
     <div id="mvp-lista"></div>
   </section>
 
@@ -331,9 +331,8 @@ td.num { text-align: right; width: 2.5em; }
     if (audio && audio.src) audio.play().catch(() => {});
   }
 
-  // MVP: las muñekas con más puntos en la jornada actual (OUT no cuenta). Con empate, aparecen todas.
-  function renderMvp() {
-    const j = String(jornada);
+  // MVP: las muñekas con más puntos de una jornada (OUT no cuenta). Con empate, aparecen todas.
+  function mvpDeJornada(j) {
     const puntosDe = (p) => {
       const m = medias[p];
       if (!m || (m.categorias && m.categorias[j] === "OUT")) return null;
@@ -344,21 +343,37 @@ td.num { text-align: right; width: 2.5em; }
       const pts = puntosDe(p);
       if (pts !== null && pts > topPts) topPts = pts;
     });
-    const empatados = PLAYERS.filter((p) => topPts > 0 && puntosDe(p) === topPts);
+    return PLAYERS.filter((p) => topPts > 0 && puntosDe(p) === topPts);
+  }
+
+  // En Clasificación muestra la MVP de la jornada elegida y no la reproduce sola.
+  // En el resto de pestañas, la de la jornada actual.
+  function renderMvp() {
+    const enClasificacion = document.querySelector(".tab.active").dataset.tab === "clasificacion";
+    const j = enClasificacion ? $("jornada-sel").value : String(jornada);
+    const empatados = mvpDeJornada(j);
     const sec = $("mvp");
     if (!empatados.length) { sec.hidden = true; mvpClave = null; return; }
     sec.hidden = false;
-    const nombres = empatados.length > 1
+    const varias = empatados.length > 1;
+    const pasada = enClasificacion && Number(j) < Number(jornada);
+    if (pasada) {
+      $("mvp-lead").textContent = varias
+        ? "Las MVPs (Muñekas Vien Putonas) de la jornada " + j + " fueron…"
+        : "La MVP (Muñeka Vien Putona) de la jornada " + j + " fue…";
+    } else {
+      $("mvp-lead").textContent = varias ? "Las MVP (Muñekas Vien Putonas) son…" : "La MVP (Muñeka Vien Putona) es…";
+    }
+    $("mvp-nombre").textContent = varias
       ? empatados.slice(0, -1).join(", ") + " y " + empatados[empatados.length - 1]
       : empatados[0];
-    $("mvp-nombre").textContent = nombres;
 
-    const clave = j + ":" + empatados.join(",");
+    const clave = (enClasificacion ? "c" : "v") + j + ":" + empatados.join(",");
     if (clave === mvpClave) return;
     mvpClave = clave;
     const lista = $("mvp-lista");
     lista.textContent = "";
-    const unico = empatados.length === 1;
+    const unico = !varias && !enClasificacion;
     empatados.forEach((p) => {
       const fila = document.createElement("div");
       fila.className = "mvp-main";
@@ -417,7 +432,7 @@ td.num { text-align: right; width: 2.5em; }
       sel.value = lista.includes(prev) ? prev : String(jornada);
     }
     if (!sel.dataset.bound) {
-      sel.addEventListener("change", renderClasificacion);
+      sel.addEventListener("change", () => { renderClasificacion(); renderMvp(); });
       sel.dataset.bound = "1";
     }
 
@@ -501,8 +516,8 @@ td.num { text-align: right; width: 2.5em; }
       $("round-vote").textContent = jornada;
       $("advance-btn").textContent = "Pasar a la jornada " + (jornada + 1);
       renderTabla();
-      renderMvp();
       renderClasificacion();
+      renderMvp();
     } catch (e) {
       $("round").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
     } finally {
@@ -577,6 +592,7 @@ td.num { text-align: right; width: 2.5em; }
   document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === b));
     document.querySelectorAll(".panel").forEach((p) => (p.hidden = p.dataset.panel !== b.dataset.tab));
+    renderMvp();
   }));
 
   refresh();
