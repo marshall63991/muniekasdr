@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Zerolas Race - All Muñekas - Season 1</title>
+<title>Votación de posiciones</title>
 <style>
 :root {
   --bg: #f6f5f1; --surface: #ffffff; --fg: #1d1f1c; --muted: #6b6f68;
@@ -75,14 +75,25 @@ td.num { text-align: right; width: 2.5em; }
 .mvp-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .mvp-main audio { flex: 1; min-width: 0; width: 100%; }
 #mvp-nombre { font-size: 18px; color: var(--fg); }
+.spinner {
+  display: inline-block; vertical-align: middle; margin-left: 8px;
+  width: 18px; height: 18px; box-sizing: border-box;
+  border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.spinner[hidden] { display: none !important; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+.chip { min-width: 0; display: inline-block; padding: 2px 6px; margin: 2px; border-radius: 6px; font-size: 12px; }
 .total { font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Zerolas Race - All Muñekas - Season 1</h1>
+    <h1>Votación de posiciones</h1>
     <p id="round">Cargando jornada…</p>
+    <span class="spinner" id="spinner" role="status" aria-label="Cargando"></span>
   </header>
 
   <section class="card" id="mvp" hidden>
@@ -96,6 +107,7 @@ td.num { text-align: right; width: 2.5em; }
   <nav class="tabs">
     <button type="button" class="tab active" data-tab="votar">Votaciones</button>
     <button type="button" class="tab" data-tab="ppe">PPE</button>
+    <button type="button" class="tab" data-tab="clasificacion">Clasificación</button>
   </nav>
 
   <div class="panel" data-panel="votar">
@@ -114,7 +126,7 @@ td.num { text-align: right; width: 2.5em; }
 
   <section class="card hidden-block" id="vote-block" hidden>
     <h2>Votación de la jornada <span id="round-vote"></span></h2>
-    <p class="msg">Votación anónima. No puedes votarte a ti misma muñekona. Cada opción solo se puede usar una vez.</p>
+    <p class="msg">Votación anónima. No puedes votarte a ti mismo. Cada opción solo se puede usar una vez.</p>
     <form id="vote-form" novalidate>
       <div id="pickers"></div>
       <button type="submit" id="submit-btn">Enviar voto</button>
@@ -124,7 +136,7 @@ td.num { text-align: right; width: 2.5em; }
 
   <section class="card hidden-block" id="advance-block" hidden>
     <h2>Control de jornada</h2>
-    <p class="msg">Solo Marcial puede pasar a la siguiente jornada. Te jodes</p>
+    <p class="msg">Solo Marcial puede pasar a la siguiente jornada.</p>
     <label for="clave">Clave</label>
     <input id="clave" type="password" autocomplete="off">
     <button type="button" id="advance-btn">Pasar a la siguiente jornada</button>
@@ -141,8 +153,17 @@ td.num { text-align: right; width: 2.5em; }
   <div class="panel" data-panel="ppe" hidden>
   <section class="card">
     <h2>PPE (Points Per Encounter)</h2>
-    <p class="msg">Categoría de cada muñeka en cada jornada, según los puntos que recibe.</p>
+    <p class="msg">Categoría de cada jugador en cada jornada, según los puntos que recibe.</p>
     <div class="results" id="tabla"></div>
+  </section>
+  </div>
+  <div class="panel" data-panel="clasificacion" hidden>
+  <section class="card">
+    <h2>Clasificación por jornada</h2>
+    <label for="jornada-sel">Jornada</label>
+    <select id="jornada-sel"></select>
+    <p class="msg">Los votos son anónimos: se ven las opciones que recibió cada jugador, no quién las dio.</p>
+    <div class="results" id="clas-tabla"></div>
   </section>
   </div>
 </main>
@@ -150,7 +171,7 @@ td.num { text-align: right; width: 2.5em; }
 <script>
 (function () {
   // Pega aquí la URL de la aplicación web de Google Apps Script
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbdi42g8HQVgvZStTTYCz7G7goFy8_fJAZOg_v_iomJnLcC_BnYsRcGXgQitrAu8Y/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOu_-gfCUaRAeBTr5SQd8y00aV892mVoF2r3EZxn3LaX4VibvlQ1Mj3VppKxy3tRm7/exec";
 
   const PLAYERS = ["Marcial", "Luis", "Xavi", "Juli", "Jesús"];
   const OPTIONS = ["WIN", "HIGH", "SAFE", "LOW", "BOTTOM"];
@@ -175,6 +196,7 @@ td.num { text-align: right; width: 2.5em; }
   let rows = [];
   let medias = {};
   let jornadasList = [];
+  let votosAll = [];
 
   function votedKey() { return "votacion-posiciones-voted-j" + jornada; }
 
@@ -383,11 +405,11 @@ td.num { text-align: right; width: 2.5em; }
 
   // Pista de cada jugador, en el mismo directorio que index.html
   const PISTAS = {
-    "Xavi": "oliviaDean.mp3",
-    "Luis": "sabrina.mp3",
-    "Jesús": "gyal.mp3",
-    "Marcial": "slayyter.mp3",
-    "Juli": "emilia.mp3",
+    "Xavi": "xavi%20oliviaDean.mp3",
+    "Luis": "luis%20sabrina.mp3",
+    "Jesús": "jesus%20gyal.mp3",
+    "Marcial": "marci%20slayyter.mp3",
+    "Juli": "juli%20emilia.mp3",
   };
   let mvpActual = null;
 
@@ -426,7 +448,83 @@ td.num { text-align: right; width: 2.5em; }
     }
   }
 
+  // Pestaña Clasificación: elige jornada y muestra, por jugador, las opciones recibidas
+  function renderClasificacion() {
+    const sel = $("jornada-sel");
+    const prev = sel.value;
+    const lista = [...new Set(jornadasList.map(String).concat([String(jornada)]))]
+      .sort((a, b) => Number(a) - Number(b));
+    const clave = lista.join(",");
+    if (sel.dataset.lista !== clave) {
+      sel.textContent = "";
+      lista.forEach((j) => {
+        const o = document.createElement("option");
+        o.value = j;
+        o.textContent = "Jornada " + j;
+        sel.appendChild(o);
+      });
+      sel.dataset.lista = clave;
+      sel.value = lista.includes(prev) ? prev : String(jornada);
+    }
+    if (!sel.dataset.bound) {
+      sel.addEventListener("change", renderClasificacion);
+      sel.dataset.bound = "1";
+    }
+
+    const j = sel.value;
+    const orden = OPTIONS.concat(["OUT"]);
+    const box = $("clas-tabla");
+    box.textContent = "";
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    ["Jugador", "Votos recibidos", "Puntos"].forEach((t) => {
+      const th = document.createElement("th");
+      th.textContent = t;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    PLAYERS.forEach((p) => {
+      const tr = document.createElement("tr");
+      const td0 = document.createElement("td");
+      td0.appendChild(avatar(p));
+      td0.appendChild(document.createTextNode(p));
+
+      const td1 = document.createElement("td");
+      const picks = votosAll
+        .filter((r) => String(r[0]) === j && r[1] === p)
+        .map((r) => r[2])
+        .sort((a, b) => orden.indexOf(a) - orden.indexOf(b));
+      if (!picks.length) {
+        td1.textContent = "Sin votos";
+      }
+      picks.forEach((o) => {
+        const c = document.createElement("span");
+        c.className = "cat chip cat-" + o;
+        c.textContent = o;
+        td1.appendChild(c);
+      });
+
+      const m = (medias[p] || {});
+      let puntos = "—";
+      if (m.categorias && m.categorias[j] === "OUT") puntos = "OUT";
+      else if (m.porJornada && m.porJornada[j] !== undefined) puntos = m.porJornada[j];
+      const td2 = document.createElement("td");
+      td2.className = "num";
+      td2.textContent = puntos;
+
+      tr.append(td0, td1, td2);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    box.appendChild(table);
+  }
+
   async function refresh() {
+    $("spinner").hidden = false;
     try {
       const data = await get();
       if (!data.ok) throw new Error(data.error);
@@ -434,6 +532,7 @@ td.num { text-align: right; width: 2.5em; }
       rows = data.rows;
       medias = data.medias || {};
       jornadasList = data.jornadas || [];
+      votosAll = data.votos || [];
       $("round").textContent = "Jornada " + jornada;
       $("round-vote").textContent = jornada;
       $("round-results").textContent = "· jornada " + jornada;
@@ -441,8 +540,11 @@ td.num { text-align: right; width: 2.5em; }
       render();
       renderTabla();
       renderMvp();
+      renderClasificacion();
     } catch (e) {
       $("total").textContent = "No se pueden cargar los datos ahora. Revisa la URL del script.";
+    } finally {
+      $("spinner").hidden = true;
     }
   }
 
