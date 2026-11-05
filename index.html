@@ -351,16 +351,22 @@ td.num { text-align: right; width: 2.5em; }
   function renderMvp() {
     const enClasificacion = document.querySelector(".tab.active").dataset.tab === "clasificacion";
     const j = enClasificacion ? $("jornada-sel").value : String(jornada);
-    const empatados = mvpDeJornada(j);
+    // Si la jornada actual aún no tiene MVP (sin votos), se muestra la de la anterior
+    let mostrada = j;
+    let empatados = mvpDeJornada(j);
+    if (!empatados.length && Number(j) === Number(jornada) && Number(jornada) > FIRST_JORNADA) {
+      mostrada = String(Number(jornada) - 1);
+      empatados = mvpDeJornada(mostrada);
+    }
     const sec = $("mvp");
     if (!empatados.length) { sec.hidden = true; mvpClave = null; return; }
     sec.hidden = false;
     const varias = empatados.length > 1;
-    const pasada = enClasificacion && Number(j) < Number(jornada);
+    const pasada = Number(mostrada) < Number(jornada);
     if (pasada) {
       $("mvp-lead").textContent = varias
-        ? "Las MVPs (Muñekas Vien Putonas) de la jornada " + j + " fueron…"
-        : "La MVP (Muñeka Vien Putona) de la jornada " + j + " fue…";
+        ? "Las MVPs (Muñekas Vien Putonas) de la jornada " + mostrada + " fueron…"
+        : "La MVP (Muñeka Vien Putona) de la jornada " + mostrada + " fue…";
     } else {
       $("mvp-lead").textContent = varias ? "Las MVP (Muñekas Vien Putonas) son…" : "La MVP (Muñeka Vien Putona) es…";
     }
@@ -368,7 +374,7 @@ td.num { text-align: right; width: 2.5em; }
       ? empatados.slice(0, -1).join(", ") + " y " + empatados[empatados.length - 1]
       : empatados[0];
 
-    const clave = (enClasificacion ? "c" : "v") + j + ":" + empatados.join(",");
+    const clave = (enClasificacion ? "c" : "v") + mostrada + ":" + empatados.join(",");
     if (clave === mvpClave) return;
     mvpClave = clave;
     const lista = $("mvp-lista");
